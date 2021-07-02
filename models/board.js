@@ -1,6 +1,5 @@
 module.exports = function (sequelize, dataTypes) {
     const board = sequelize.define("Board", {
-      
       title: {
         type: dataTypes.STRING(30),
         allowNull: false,
