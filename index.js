@@ -15,7 +15,7 @@ app.get("/board", (req, res) => {
   let searchText = req.query.search;
 
   models.Board.findAll({
-    attributes: ["id", "title", "writer", "hit"],
+    attributes: ["id", "title", "writer", "hit", "createdAt"],
 
     where: {
       title: {
@@ -32,20 +32,38 @@ app.get("/board", (req, res) => {
     });
 });
 
+//게시글 조회
 app.get("/board/:id", (req, res) => {
   const params = req.params;
   const { id } = params;
 
   models.Board.findOne({
-    attributes: ["id", "title", "content", "writer", "hit"],
+    attributes: ["id", "title", "content", "writer", "hit", "createdAt"],
     where: {
       id,
     },
   })
     .then((result) => {
-      res.send({
-        board: result,
-      });
+      var board = result;
+      board.hit++;
+
+      //   조회수 상승 구현  향후 로그인기능 구현시 1계정단 1번만 실행하는 부분 추가 예정
+      models.Board.update(
+        {
+          hit: board.hit,
+        },
+        {
+          where: {
+            id,
+          },
+        }
+      )
+        .then((result2) => {
+          res.send({
+            board,
+          });
+        })
+        .catch((error) => {});
     })
     .catch((error) => {
       console.error(error);
@@ -53,6 +71,7 @@ app.get("/board/:id", (req, res) => {
     });
 });
 
+//게시글 작성
 app.post("/board", (req, res) => {
   const body = req.body;
   const { title, content, writer, pw } = body;
@@ -72,6 +91,23 @@ app.post("/board", (req, res) => {
     })
     .catch((error) => {
       res.status(400), send("글 작성 실패");
+    });
+});
+
+app.delete("/board/:id", (req, res) => {
+  const params = req.params;
+  const { id } = params;
+  models.Board.destroy({
+    where: {
+      id,
+    },
+  })
+    .then((result) => {
+      res.send({ result });
+    })
+    .catch((error) => {
+      console.error(error);
+      res.status(400).send("게시글 삭제에 문제가 발생했습니다.");
     });
 });
 
