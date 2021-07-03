@@ -5,78 +5,86 @@ const models = require("./models");
 const sequelize = require("sequelize");
 const op = sequelize.Op;
 
-const port =   8080;
+const port = 8080;
 
 app.use(express.json());
 app.use(cors());
 
+// 게시판 검색 api , search키워드로 쿼리 주면 해당문자열 검색 구현
+app.get("/board", (req, res) => {
+  let searchText = req.query.search;
 
-// 게시판 검색 api , search키워드로 쿼리 주면 해당문자열 검색 구현 
-app.get("/board",(req,res)=>{
-    
-    let searchText = req.query.search; 
-     
-    models.Board.findAll({ 
-        attributes:[
-            "id",
-            "title",
-            "writer",
-            "hit",
-        ], 
-    
-        where :{            
-            title : {
-                 [op.like] : "%"+(searchText!=null?searchText:"")+"%",
-            },
-        },
-    
+  models.Board.findAll({
+    attributes: ["id", "title", "writer", "hit"],
 
-    }).then((result)=>{
-        res.send({board: result});
-    }).catch((error)=>{
-        console.error(error);
-        res.status(400).send("error",error);
+    where: {
+      title: {
+        [op.like]: "%" + (searchText != null ? searchText : "") + "%",
+      },
+    },
+  })
+    .then((result) => {
+      res.send({ board: result });
+    })
+    .catch((error) => {
+      console.error(error);
+      res.status(400).send("error", error);
     });
 });
 
-app.get("/board/:id",(req,res)=>{
-    const params = req.params;
-    const {id} = params;
+app.get("/board/:id", (req, res) => {
+  const params = req.params;
+  const { id } = params;
 
-    models.Board.findOne({
-        attributes:[
-            "id",
-            "title",
-            "content",
-            "writer",
-            "hit",
-        ], 
-        where: {
-            id,
-          },
-    })
-    .then((result) => { 
-        res.send({
-            board: result,
-        });
-      })
-      .catch((error) => {
-        console.error(error);
-        res.status(400).send("게시글 조회에 문제가 발생했습니다.");
+  models.Board.findOne({
+    attributes: ["id", "title", "content", "writer", "hit"],
+    where: {
+      id,
+    },
+  })
+    .then((result) => {
+      res.send({
+        board: result,
       });
-})
+    })
+    .catch((error) => {
+      console.error(error);
+      res.status(400).send("게시글 조회에 문제가 발생했습니다.");
+    });
+});
+
+app.post("/board", (req, res) => {
+  const body = req.body;
+  const { title, content, writer, pw } = body;
+  if (!title || !content || !writer || !pw) {
+    res.status(400).send("모든 필드를 입력해주세요");
+  }
+
+  models.Board.create({
+    title,
+    content,
+    writer,
+    pw,
+    hit: "0",
+  })
+    .then((result) => {
+      res.send(result);
+    })
+    .catch((error) => {
+      res.status(400), send("글 작성 실패");
+    });
+});
 
 app.listen(port, () => {
-    console.log("서버 정상동작중");
-    models.sequelize
-      .sync()
-      .then(() => {
-        console.log("db 연결 성공");
-      })
-      .catch((eff) => {
-        console.log(err);
-        console.log("db 연결 에러");
-        process.exit();
-      });
-  });
-  
+  console.log("서버 정상동작중");
+  models.sequelize
+    .sync()
+    .then(() => {
+      console.log("db 연결 성공");
+    })
+    .catch((eff) => {
+      console.log(err);
+      console.log("db 연결 에러");
+      process.exit();
+    });
+});
