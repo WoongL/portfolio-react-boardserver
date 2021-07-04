@@ -12,14 +12,14 @@ app.use(cors());
 
 // 게시판 검색 api , search키워드로 쿼리 주면 해당문자열 검색 구현
 app.get("/board", (req, res) => {
-  let searchText = req.query.search;
+  let querysearchtext = req.query.search;
 
   models.Board.findAll({
     attributes: ["id", "title", "writer", "hit", "createdAt"],
 
     where: {
       title: {
-        [op.like]: "%" + (searchText != null ? searchText : "") + "%",
+        [op.like]: "%" + (querysearchtext != null ? querysearchtext : "") + "%",
       },
     },
   })
@@ -32,43 +32,59 @@ app.get("/board", (req, res) => {
     });
 });
 
-//게시글 조회
+//게시글 조회 / 쿼리로 pw 값주면 게시글의 비밀번호 맞는지 검사
 app.get("/board/:id", (req, res) => {
   const params = req.params;
   const { id } = params;
-
-  models.Board.findOne({
-    attributes: ["id", "title", "content", "writer", "hit", "createdAt"],
-    where: {
-      id,
-    },
-  })
-    .then((result) => {
-      var board = result;
-      board.hit++;
-
-      //   조회수 상승 구현  향후 로그인기능 구현시 1계정단 1번만 실행하는 부분 추가 예정
-      models.Board.update(
-        {
-          hit: board.hit,
-        },
-        {
-          where: {
-            id,
-          },
-        }
-      )
-        .then((result2) => {
-          res.send({
-            board,
-          });
-        })
-        .catch((error) => {});
+  let querypw = req.query.pw;
+  if (querypw != null) {
+    models.Board.findOne({
+      attributes: ["pw"],
+      where: {
+        id,
+      },
     })
-    .catch((error) => {
-      console.error(error);
-      res.status(400).send("게시글 조회에 문제가 발생했습니다.");
-    });
+      .then((result) => {
+        res.send(querypw == result.pw);
+      })
+      .catch((error) => {
+        console.error(error);
+        res.status(400).send("패스워드 확인에 문제가 발생했습니다.");
+      });
+  } else {
+    models.Board.findOne({
+      attributes: ["id", "title", "content", "writer", "hit", "createdAt"],
+      where: {
+        id,
+      },
+    })
+      .then((result) => {
+        var board = result;
+        board.hit++;
+
+        //   조회수 상승 구현  향후 로그인기능 구현시 1계정단 1번만 실행하는 부분 추가 예정
+        models.Board.update(
+          {
+            hit: board.hit,
+          },
+          {
+            where: {
+              id,
+            },
+          }
+        )
+          .then((result2) => {
+            res.send({
+              board,
+            });
+          })
+          .catch((error) => {});
+      })
+      .catch((error) => {
+        console.error(error);
+        res.status(400).send("게시글 조회에 문제가 발생했습니다.");
+      });
+  }
 });
 
 //게시글 작성
