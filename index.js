@@ -37,6 +37,7 @@ app.get("/board/:id", (req, res) => {
   const params = req.params;
   const { id } = params;
   let querypw = req.query.pw;
+  console.log(querypw);
   if (querypw != null) {
     models.Board.findOne({
       attributes: ["pw"],
@@ -85,6 +86,36 @@ app.get("/board/:id", (req, res) => {
         res.status(400).send("게시글 조회에 문제가 발생했습니다.");
       });
   }
+});
+
+app.put("/board/:id", (req, res) => {
+  const params = req.params;
+  const body = req.body;
+  const { id } = params;
+  const { title, content, writer, pw } = body;
+  if (!title || !content || !writer || !pw) {
+    res.status(400).send("모든 필드를 입력해주세요");
+  }
+
+  models.Board.update(
+    {
+      title,
+      content,
+      writer,
+      pw,
+    },
+    {
+      where: {
+        id,
+      },
+    }
+  )
+    .then((result) => {
+      res.send({
+        result,
+      });
+    })
+    .catch((error) => {});
 });
 
 //게시글 작성
