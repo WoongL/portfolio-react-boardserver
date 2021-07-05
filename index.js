@@ -14,15 +14,17 @@ app.use(cors());
 app.get("/board", (req, res) => {
   let querysearchtext = req.query.search;
 
-  models.Board.findAll({
-    attributes: ["id", "title", "writer", "hit", "createdAt"],
+  models.board
+    .findAll({
+      attributes: ["id", "title", "writer", "hit", "createdAt"],
 
-    where: {
-      title: {
-        [op.like]: "%" + (querysearchtext != null ? querysearchtext : "") + "%",
+      where: {
+        title: {
+          [op.like]:
+            "%" + (querysearchtext != null ? querysearchtext : "") + "%",
+        },
       },
-    },
-  })
+    })
     .then((result) => {
       res.send({ board: result });
     })
@@ -37,14 +39,15 @@ app.get("/board/:id", (req, res) => {
   const params = req.params;
   const { id } = params;
   let querypw = req.query.pw;
-  console.log(querypw);
+
   if (querypw != null) {
-    models.Board.findOne({
-      attributes: ["pw"],
-      where: {
-        id,
-      },
-    })
+    models.board
+      .findOne({
+        attributes: ["pw"],
+        where: {
+          id,
+        },
+      })
       .then((result) => {
         res.send(querypw == result.pw);
       })
@@ -53,27 +56,29 @@ app.get("/board/:id", (req, res) => {
         res.status(400).send("패스워드 확인에 문제가 발생했습니다.");
       });
   } else {
-    models.Board.findOne({
-      attributes: ["id", "title", "content", "writer", "hit", "createdAt"],
-      where: {
-        id,
-      },
-    })
+    models.board
+      .findOne({
+        attributes: ["id", "title", "content", "writer", "hit", "createdAt"],
+        where: {
+          id,
+        },
+      })
       .then((result) => {
         var board = result;
         board.hit++;
 
         //   조회수 상승 구현  향후 로그인기능 구현시 1계정단 1번만 실행하는 부분 추가 예정
-        models.Board.update(
-          {
-            hit: board.hit,
-          },
-          {
-            where: {
-              id,
+        models.board
+          .update(
+            {
+              hit: board.hit,
             },
-          }
-        )
+            {
+              where: {
+                id,
+              },
+            }
+          )
           .then((result2) => {
             res.send({
               board,
@@ -97,19 +102,20 @@ app.put("/board/:id", (req, res) => {
     res.status(400).send("모든 필드를 입력해주세요");
   }
 
-  models.Board.update(
-    {
-      title,
-      content,
-      writer,
-      pw,
-    },
-    {
-      where: {
-        id,
+  models.board
+    .update(
+      {
+        title,
+        content,
+        writer,
+        pw,
       },
-    }
-  )
+      {
+        where: {
+          id,
+        },
+      }
+    )
     .then((result) => {
       res.send({
         result,
@@ -126,13 +132,14 @@ app.post("/board", (req, res) => {
     res.status(400).send("모든 필드를 입력해주세요");
   }
 
-  models.Board.create({
-    title,
-    content,
-    writer,
-    pw,
-    hit: "0",
-  })
+  models.board
+    .create({
+      title,
+      content,
+      writer,
+      pw,
+      hit: "0",
+    })
     .then((result) => {
       res.send(result);
     })
@@ -144,11 +151,12 @@ app.post("/board", (req, res) => {
 app.delete("/board/:id", (req, res) => {
   const params = req.params;
   const { id } = params;
-  models.Board.destroy({
-    where: {
-      id,
-    },
-  })
+  models.board
+    .destroy({
+      where: {
+        id,
+      },
+    })
     .then((result) => {
       res.send({ result });
     })
@@ -158,6 +166,140 @@ app.delete("/board/:id", (req, res) => {
     });
 });
 
+//// 댓글의 비밀번호
+
+//해당 인덱스(id) 글의 댓글을 불러오는 api
+app.get("/reply/:boardid", (req, res) => {
+  const params = req.params;
+  const { boardid } = params;
+
+  models.reply
+    .findAll({
+      attributes: ["id", "content", "writer", "createdAt"],
+
+      where: {
+        boardid,
+      },
+    })
+    .then((result) => {
+      res.send({ reply: result });
+    })
+    .catch((error) => {
+      console.error(error);
+      res.status(400).send("error", error);
+    });
+});
+//해당 글 id에 댓글 작성
+app.post("/reply/:boardid", (req, res) => {
+  const params = req.params;
+  const { boardid } = params;
+  const body = req.body;
+  const { content, writer, pw } = body;
+
+  if (!content || !writer || !pw) {
+    res.status(400).send("모든 필드를 입력해주세요");
+  }
+  models.reply
+    .create({
+      boardid,
+      content,
+      writer,
+      pw,
+    })
+    .then((result) => {
+      res.send(result);
+    })
+    .catch((error) => {
+      res.status(400), send("글 작성 실패");
+    });
+});
+
+app.get("/replypwcheck/:id", (req, res) => {
+  const params = req.params;
+  const { id } = params;
+  let querypw = req.query.pw;
+  if (querypw != null) {
+    models.reply
+      .findOne({
+        attributes: ["pw"],
+        where: {
+          id,
+        },
+      })
+      .then((result) => {
+        res.send(querypw == result.pw);
+      })
+      .catch((error) => {
+        console.error(error);
+        res.status(400).send("패스워드 확인에 문제가 발생했습니다.");
+      });
+  } else {
+    models.reply
+      .findOne({
+        attributes: ["content", "writer", "pw"],
+        where: {
+          id,
+        },
+      })
+      .then((result) => {
+        res.send(result);
+
+        //   조회수 상승 구현  향후 로그인기능 구현시 1계정단 1번만 실행하는 부분 추가 예정
+      })
+      .catch((error) => {
+        console.error(error);
+        res.status(400).send("댓글 조회에 문제가 발생했습니다.");
+      });
+  }
+});
+
+app.put("/reply/:id", (req, res) => {
+  const params = req.params;
+  const body = req.body;
+  const { id } = params;
+  const { content, writer, pw } = body;
+  if (!content || !writer || !pw) {
+    res.status(400).send("모든 필드를 입력해주세요");
+  }
+
+  models.reply
+    .update(
+      {
+        content,
+        writer,
+        pw,
+      },
+      {
+        where: {
+          id,
+        },
+      }
+    )
+    .then((result) => {
+      res.send({
+        result,
+      });
+    })
+    .catch((error) => {});
+});
+
+app.delete("/reply/:id", (req, res) => {
+  const params = req.params;
+  const { id } = params;
+  models.reply
+    .destroy({
+      where: {
+        id,
+      },
+    })
+    .then((result) => {
+      res.send({ result });
+    })
+    .catch((error) => {
+      console.error(error);
+      res.status(400).send("게시글 삭제에 문제가 발생했습니다.");
+    });
+});
 app.listen(port, () => {
   console.log("서버 정상동작중");
   models.sequelize
