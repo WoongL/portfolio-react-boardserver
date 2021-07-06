@@ -13,11 +13,15 @@ app.use(cors());
 // 게시판 검색 api , search키워드로 쿼리 주면 해당문자열 검색 구현
 app.get("/board", (req, res) => {
   let querysearchtext = req.query.search;
+  let pagescale = req.query.pagescale != null ? req.query.pagescale : 10;
+  let page = req.query.page != null ? req.query.page : 1;
+  let offset = (page - 1) * pagescale;
 
   models.board
     .findAll({
+      limit: pagescale,
+      offset,
       attributes: ["id", "title", "writer", "hit", "createdAt"],
-
       where: {
         title: {
           [op.like]:
@@ -26,7 +30,24 @@ app.get("/board", (req, res) => {
       },
     })
     .then((result) => {
-      res.send({ board: result });
+      models.board
+        .findAll({
+          attributes: [[models.sequelize.fn("count", "*"), "count"]],
+
+          where: {
+            title: {
+              [op.like]:
+                "%" + (querysearchtext != null ? querysearchtext : "") + "%",
+            },
+          },
+        })
+        .then((count) => {
+          res.send({ board: result, count: count[0] });
+        })
+        .catch((error) => {
+          console.error(error);
+          res.status(400).send("error", error);
+        });
     })
     .catch((error) => {
       console.error(error);
